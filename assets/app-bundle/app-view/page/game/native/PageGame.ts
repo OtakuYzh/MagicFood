@@ -1,4 +1,4 @@
-import { _decorator, instantiate, math, Prefab, UITransform } from 'cc';
+import { _decorator, EventTouch, instantiate, math, Node, Prefab, UITransform, v3, Vec2, Vec3, view } from 'cc';
 import BaseView from '../../../../../../extensions/app/assets/base/BaseView';
 import { IMiniViewNames } from '../../../../../app-builtin/app-admin/executor';
 import { ecs, MoveComponent, MoveSystem, NodeComponent } from 'db://assets/pkg-export/@gamex/cc-ecs';
@@ -10,6 +10,7 @@ import { BulletComponent } from './expansion/ecs/component/BulletComponent';
 import { CollisionSystem } from './expansion/ecs/system/CollisionSystem';
 import { DestroySystem } from './expansion/ecs/system/DestroySystem';
 import { CollisionComponent } from './expansion/ecs/component/CollisionComponent';
+import { InputSingleton } from './expansion/ecs/singleton/InputSingleton';
 
 enum Group {
     Player = 1 << 0,
@@ -88,7 +89,12 @@ export class PageGame extends BaseView.BindController(GameController) {
         collision.body.setRect(node.boundingBox);
 
         const move = entity.add(MoveComponent);
-        move.toward = 90; // 垂直
+        const input = ecs.getSingleton(InputSingleton);
+        const inputPos = new Vec3(input.x, input.y, player.entity.node.position.z);
+        inputPos.subtract(player.entity.node.position)
+        const angle = Math.atan2(inputPos.y, inputPos.x) * 180 / Math.PI;
+        move.toward = angle;
+        // move.toward = 90; // 垂直
         move.speed = 1000;
 
         entity.add(BulletComponent);
@@ -106,5 +112,20 @@ export class PageGame extends BaseView.BindController(GameController) {
 
         // 添加玩家组件
         entity.add(PlayerComponent);
+
+        const input = ecs.addSingleton(InputSingleton);
+        input.x = 0;
+        input.y = view.getVisibleSize().height;
+
+        this.node.on(Node.EventType.TOUCH_START, this.onChangeShootAngle, this);
+        this.node.on(Node.EventType.TOUCH_END, this.onChangeShootAngle, this);
+    }
+
+    private onChangeShootAngle(event: EventTouch) {
+        const input = ecs.getSingleton(InputSingleton);
+        const pos = event.getUILocation();
+        const { x, y } = this.node.getComponent(UITransform).convertToNodeSpaceAR(v3(pos.x, pos.y, 1));
+        input.x = x;
+        input.y = y;
     }
 }

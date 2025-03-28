@@ -85,12 +85,13 @@ export class PageGame extends BaseView.BindController(GameController) {
         const enemy = instantiate(this.enemy);
         enemy.parent = this.node;
         //TODO 怪物生成的位置是否需要根据手机屏幕进行统一适配？
-        enemy.setPosition(randomRange(0, view.getVisibleSize().width), view.getVisibleSize().height);
+        enemy.x = randomRange(0, view.getVisibleSize().width);
+        enemy.y = view.getVisibleSize().height;
 
         const entity = ecs.createEntity(MyEntity, { node: enemy });
 
         const node = entity.add(NodeComponent);
-        node.setPosition(enemy.position.x, enemy.position.y);
+        node.setPosition(enemy.x, enemy.y);
         node.setContentSize(enemy.getComponent(UITransform).width, enemy.getComponent(UITransform).height);
 
         const collision = entity.add(CollisionComponent);
@@ -108,12 +109,14 @@ export class PageGame extends BaseView.BindController(GameController) {
     onShoot(player: PlayerComponent) {
         const bullet = instantiate(this.bullet);
         bullet.parent = this.node;
-        bullet.setPosition(player.entity.node.getPosition());
+        const playerPos = player.entity.node.getPosition();
+        bullet.x = playerPos.x;
+        bullet.y = playerPos.y;
 
         const entity = ecs.createEntity(MyEntity, { node: bullet });
 
         const node = entity.add(NodeComponent);
-        node.setPosition(player.entity.node.position.x, player.entity.node.position.y);
+        node.setPosition(bullet.x, bullet.y);
         node.setContentSize(bullet.getComponent(UITransform).width, bullet.getComponent(UITransform).height);
 
         const collision = entity.add(CollisionComponent);
@@ -123,8 +126,8 @@ export class PageGame extends BaseView.BindController(GameController) {
 
         const move = entity.add(MoveComponent);
         const input = ecs.getSingleton(InputSingleton);
-        const inputPos = new Vec3(input.x, input.y, player.entity.node.position.z);
-        inputPos.subtract(player.entity.node.position)
+        const inputPos = new Vec3(input.x, input.y, bullet.z);
+        inputPos.subtract(bullet.position);
         const angle = Math.atan2(inputPos.y, inputPos.x) * 180 / Math.PI;
         move.toward = angle;
         // move.toward = 90; // 垂直

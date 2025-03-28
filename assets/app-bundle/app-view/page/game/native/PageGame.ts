@@ -13,17 +13,20 @@ import { CollisionComponent } from './expansion/ecs/component/CollisionComponent
 import { InputSingleton } from './expansion/ecs/singleton/InputSingleton';
 import { EnemySystem } from './expansion/ecs/system/EnemySystem';
 import { EnemyComponent } from './expansion/ecs/component/EnemyComponent';
+import { ExpComponent } from './expansion/ecs/component/ExpComponent';
 
 enum Group {
     Player = 1 << 0,
     Bullet = 1 << 1,
     Enemy = 1 << 2,
+    Exp = 1 << 3,
 }
 
 enum Mask {
-    Player = Group.Enemy,
+    Player = Group.Enemy | Group.Exp,
     Bullet = Group.Enemy,
     Enemy = Group.Player | Group.Bullet,
+    Exp = Group.Player,
 }
 
 const { ccclass, property } = _decorator;
@@ -41,6 +44,9 @@ export class PageGame extends BaseView.BindController(GameController) {
     @property(Prefab)
     private enemy: Prefab = null;
 
+    @property(Prefab)
+    private exp: Prefab = null;
+
     private _isRuning = false;
 
     // 初始化的相关逻辑写在这
@@ -53,6 +59,7 @@ export class PageGame extends BaseView.BindController(GameController) {
 
         this.controller.on(GameController.Event.Enemy, this.onEnemy, this);
         this.controller.on(GameController.Event.Shoot, this.onShoot, this);
+        this.controller.on(GameController.Event.Exp, this.onExp, this);
 
         this.initPlayer();
     }
@@ -81,11 +88,11 @@ export class PageGame extends BaseView.BindController(GameController) {
         return result;
     }
 
-    onEnemy() {
+    private onEnemy() {
         const enemy = instantiate(this.enemy);
         enemy.parent = this.node;
         //TODO 怪物生成的位置是否需要根据手机屏幕进行统一适配？
-        enemy.x = randomRange(0, view.getVisibleSize().width);
+        enemy.x = randomRange(-view.getVisibleSize().width/2, view.getVisibleSize().width/2);
         enemy.y = view.getVisibleSize().height;
 
         const entity = ecs.createEntity(MyEntity, { node: enemy });
@@ -106,7 +113,7 @@ export class PageGame extends BaseView.BindController(GameController) {
         entity.add(EnemyComponent);
     }
 
-    onShoot(player: PlayerComponent) {
+    private onShoot(player: PlayerComponent) {
         const bullet = instantiate(this.bullet);
         bullet.parent = this.node;
         const playerPos = player.entity.node.getPosition();
@@ -136,15 +143,57 @@ export class PageGame extends BaseView.BindController(GameController) {
         entity.add(BulletComponent);
     }
 
+    private onExp(enemyN: NodeComponent) {
+        const exp = instantiate(this.exp);
+        exp.parent = this.node;
+        exp.x = enemyN.x;
+        exp.y = enemyN.y;
+
+        const entity = ecs.createEntity(MyEntity, { node: exp });
+
+        const node = entity.add(NodeComponent);
+        node.setPosition(exp.x, exp.y);
+        node.setContentSize(exp.getComponent(UITransform).width, exp.getComponent(UITransform).height);
+
+        const collision = entity.add(CollisionComponent);
+        collision.body.setGroup(Group.Exp);
+        collision.body.setMask(Mask.Exp);
+        collision.body.setRect(node.boundingBox);
+
+        const move = entity.add(MoveComponent);
+        move.toward = Math.atan2(-exp.y, -exp.x) * 180 / Math.PI;
+        move.speed = 500;
+        // move.options = {
+        //     minSpeed: -Infinity,
+        //     maxSpeed: Infinity,
+        //     angleVelocity: 0,
+        //     rotate: false,
+        //     acceleratedVelocity: 200
+        // }
+
+        entity.add(ExpComponent);
+    }
+
     private initPlayer() {
         // 实例化预制体
         const player = instantiate(this.player);
         player.parent = this.node;
+        player.x = 0;
+        player.y = 0;
         // TODO 缺少位置信息相关的组件
         // player.setPosition(math.v3(0, -200, 0)); //TODO
 
         // 创建实体
         const entity = ecs.createEntity(MyEntity, { node: player });
+
+        const node = entity.add(NodeComponent);
+        node.setPosition(player.x, player.y);
+        node.setContentSize(player.getComponent(UITransform).width, player.getComponent(UITransform).height);
+
+        const collision = entity.addComponent(CollisionComponent);
+        collision.body.setGroup(Group.Player);
+        collision.body.setMask(Mask.Player);
+        collision.body.setRect(node.boundingBox);
 
         // 添加玩家组件
         entity.add(PlayerComponent);

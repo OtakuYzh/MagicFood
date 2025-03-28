@@ -1,4 +1,4 @@
-import { EcsSystem, filter } from 'db://assets/pkg-export/@gamex/cc-ecs';
+import { EcsSystem, filter, NodeComponent } from 'db://assets/pkg-export/@gamex/cc-ecs';
 import { DestroyComponent } from '../component/DestroyComponent';
 
 export class DestroySystem extends EcsSystem {

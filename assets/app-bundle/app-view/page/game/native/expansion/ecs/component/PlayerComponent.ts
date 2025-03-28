@@ -16,10 +16,19 @@ export class PlayerComponent extends EcsComponent<MyEntity> {
         if (v > 10) v = 10;
         this._aspd = v;
     }
-
     get attackInterval() {
         return 1 / this.aspd;
     };
+
+    /** 经验值 */
+    private _exp = 0;
+    public get exp(): number {
+        return this._exp;
+    }
+    public set exp(v: number) {
+        this._exp = v;
+    }
+
 }
 
 

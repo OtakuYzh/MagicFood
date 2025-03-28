@@ -1,4 +1,4 @@
-import { _decorator, EventTouch, instantiate, math, Node, Prefab, UITransform, v3, Vec2, Vec3, view } from 'cc';
+import { _decorator, EventTouch, instantiate, math, Node, Prefab, randomRange, UITransform, v3, Vec2, Vec3, view } from 'cc';
 import BaseView from '../../../../../../extensions/app/assets/base/BaseView';
 import { IMiniViewNames } from '../../../../../app-builtin/app-admin/executor';
 import { ecs, MoveComponent, MoveSystem, NodeComponent } from 'db://assets/pkg-export/@gamex/cc-ecs';
@@ -11,6 +11,8 @@ import { CollisionSystem } from './expansion/ecs/system/CollisionSystem';
 import { DestroySystem } from './expansion/ecs/system/DestroySystem';
 import { CollisionComponent } from './expansion/ecs/component/CollisionComponent';
 import { InputSingleton } from './expansion/ecs/singleton/InputSingleton';
+import { EnemySystem } from './expansion/ecs/system/EnemySystem';
+import { EnemyComponent } from './expansion/ecs/component/EnemyComponent';
 
 enum Group {
     Player = 1 << 0,
@@ -36,15 +38,20 @@ export class PageGame extends BaseView.BindController(GameController) {
     @property(Prefab)
     private bullet: Prefab = null;
 
+    @property(Prefab)
+    private enemy: Prefab = null;
+
     private _isRuning = false;
 
     // 初始化的相关逻辑写在这
     onLoad() {
+        ecs.addSystem(EnemySystem);
         ecs.addSystem(ShootSystem);
         ecs.addSystem(MoveSystem); //公共的move系统
         ecs.addSystem(CollisionSystem);
         ecs.addSystem(DestroySystem);
 
+        this.controller.on(GameController.Event.Enemy, this.onEnemy, this);
         this.controller.on(GameController.Event.Shoot, this.onShoot, this);
 
         this.initPlayer();
@@ -74,6 +81,30 @@ export class PageGame extends BaseView.BindController(GameController) {
         return result;
     }
 
+    onEnemy() {
+        const enemy = instantiate(this.enemy);
+        enemy.parent = this.node;
+        //TODO 怪物生成的位置是否需要根据手机屏幕进行统一适配？
+        enemy.setPosition(randomRange(0, view.getVisibleSize().width), view.getVisibleSize().height);
+
+        const entity = ecs.createEntity(MyEntity, { node: enemy });
+
+        const node = entity.add(NodeComponent);
+        node.setPosition(enemy.position.x, enemy.position.y);
+        node.setContentSize(enemy.getComponent(UITransform).width, enemy.getComponent(UITransform).height);
+
+        const collision = entity.add(CollisionComponent);
+        collision.body.setGroup(Group.Enemy);
+        collision.body.setMask(Mask.Enemy);
+        collision.body.setRect(node.boundingBox);
+
+        const move = entity.add(MoveComponent);
+        move.toward = -90;
+        move.speed = randomRange(100, 300);
+
+        entity.add(EnemyComponent);
+    }
+
     onShoot(player: PlayerComponent) {
         const bullet = instantiate(this.bullet);
         bullet.parent = this.node;
@@ -86,6 +117,8 @@ export class PageGame extends BaseView.BindController(GameController) {
         node.setContentSize(bullet.getComponent(UITransform).width, bullet.getComponent(UITransform).height);
 
         const collision = entity.add(CollisionComponent);
+        collision.body.setGroup(Group.Bullet);
+        collision.body.setMask(Mask.Bullet);
         collision.body.setRect(node.boundingBox);
 
         const move = entity.add(MoveComponent);

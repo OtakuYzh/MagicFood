@@ -4,6 +4,7 @@ export class GameController extends BaseController<GameController, {
     // 定义了事件，并同时定义参数列表和返回值
     // Refresh: (a: number) => boolean
     Shoot: (player: PlayerComponent) => void;
+    Enemy: () => void;
 }>() {
     // Controller中发射事件, UI中监听事件:
     // 1、UI中需要将 「extends BaseView」 改为=> 「extends BaseView.bindController(GameController)」
@@ -16,5 +17,8 @@ export class GameController extends BaseController<GameController, {
     // }
     shoot(player: PlayerComponent) {
         this.emit(GameController.Event.Shoot, player);
+    }
+    enemy() {
+        this.emit(GameController.Event.Enemy);
     }
 }

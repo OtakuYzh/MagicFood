@@ -6,6 +6,23 @@ import { MyEntity } from './expansion/ecs/entity/MyEntity';
 import { ShootSystem } from './expansion/ecs/system/ShootSystem';
 import { PlayerComponent } from './expansion/ecs/component/PlayerComponent';
 import { GameController } from 'db://assets/app-builtin/app-controller/GameController';
+import { BulletComponent } from './expansion/ecs/component/BulletComponent';
+import { CollisionSystem } from './expansion/ecs/system/CollisionSystem';
+import { DestroySystem } from './expansion/ecs/system/DestroySystem';
+import { CollisionComponent } from './expansion/ecs/component/CollisionComponent';
+
+enum Group {
+    Player = 1 << 0,
+    Bullet = 1 << 1,
+    Enemy = 1 << 2,
+}
+
+enum Mask {
+    Player = Group.Enemy,
+    Bullet = Group.Enemy,
+    Enemy = Group.Player | Group.Bullet,
+}
+
 const { ccclass, property } = _decorator;
 @ccclass('PageGame')
 export class PageGame extends BaseView.BindController(GameController) {
@@ -24,6 +41,8 @@ export class PageGame extends BaseView.BindController(GameController) {
     onLoad() {
         ecs.addSystem(ShootSystem);
         ecs.addSystem(MoveSystem); //公共的move系统
+        ecs.addSystem(CollisionSystem);
+        ecs.addSystem(DestroySystem);
 
         this.controller.on(GameController.Event.Shoot, this.onShoot, this);
 
@@ -65,9 +84,14 @@ export class PageGame extends BaseView.BindController(GameController) {
         node.setPosition(player.entity.node.position.x, player.entity.node.position.y);
         node.setContentSize(bullet.getComponent(UITransform).width, bullet.getComponent(UITransform).height);
 
+        const collision = entity.add(CollisionComponent);
+        collision.body.setRect(node.boundingBox);
+
         const move = entity.add(MoveComponent);
         move.toward = 90; // 垂直
         move.speed = 1000;
+
+        entity.add(BulletComponent);
     }
 
     private initPlayer() {

@@ -14,6 +14,7 @@ import { InputSingleton } from './expansion/ecs/singleton/InputSingleton';
 import { EnemySystem } from './expansion/ecs/system/EnemySystem';
 import { EnemyComponent } from './expansion/ecs/component/EnemyComponent';
 import { ExpComponent } from './expansion/ecs/component/ExpComponent';
+import { app } from 'db://assets/app/app';
 
 enum Group {
     Player = 1 << 0,
@@ -60,6 +61,7 @@ export class PageGame extends BaseView.BindController(GameController) {
         this.controller.on(GameController.Event.Enemy, this.onEnemy, this);
         this.controller.on(GameController.Event.Shoot, this.onShoot, this);
         this.controller.on(GameController.Event.Exp, this.onExp, this);
+        this.controller.on(GameController.Event.LevelUp, this.onLevelUp, this);
 
         this.initPlayer();
     }
@@ -162,16 +164,15 @@ export class PageGame extends BaseView.BindController(GameController) {
 
         const move = entity.add(MoveComponent);
         move.toward = Math.atan2(-exp.y, -exp.x) * 180 / Math.PI;
-        move.speed = 500;
-        // move.options = {
-        //     minSpeed: -Infinity,
-        //     maxSpeed: Infinity,
-        //     angleVelocity: 0,
-        //     rotate: false,
-        //     acceleratedVelocity: 200
-        // }
+        move.speed = 1000;
 
         entity.add(ExpComponent);
+    }
+
+    private onLevelUp() {
+        app.manager.ui.show({
+            name: 'PopGameLevelUp'
+        })
     }
 
     private initPlayer() {

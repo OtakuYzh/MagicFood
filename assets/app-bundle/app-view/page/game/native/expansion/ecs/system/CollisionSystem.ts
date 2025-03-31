@@ -95,7 +95,13 @@ export class CollisionSystem extends EcsSystem {
     }
 
     private playerAndExp(playerE: MyEntity, expE: MyEntity) {
+        const player = playerE.get(PlayerComponent);
+        player.exp += 1;
         expE.add(DestroyComponent);
+        app.controller.game.expVal(player.exp);
+        if (player.exp % 2 == 0) {
+            app.controller.game.levelUp();
+        }
     }
 
     private bulletAndEnemy(bulletE: MyEntity, enemyE: MyEntity) {

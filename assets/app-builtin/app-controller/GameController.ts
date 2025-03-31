@@ -8,6 +8,7 @@ export class GameController extends BaseController<GameController, {
     Enemy: () => void;
     Exp: (node: NodeComponent) => void;
     ExpVal: (val: number) => void;
+    LevelUp: () => void;
 }>() {
     // Controller中发射事件, UI中监听事件:
     // 1、UI中需要将 「extends BaseView」 改为=> 「extends BaseView.bindController(GameController)」
@@ -29,5 +30,8 @@ export class GameController extends BaseController<GameController, {
     }
     expVal(val: number) {
         this.emit(GameController.Event.ExpVal, val);
+    }
+    levelUp() {
+        this.emit(GameController.Event.LevelUp);
     }
 }

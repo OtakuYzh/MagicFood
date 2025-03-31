@@ -20,6 +20,24 @@ export class PlayerComponent extends EcsComponent<MyEntity> {
         return 1 / this.aspd;
     };
 
+    /** 分裂 */
+    private _spilt = 1;
+    public get split(): number {
+        return this._spilt;
+    }
+    public set split(v: number) {
+        this._spilt = v;
+    }
+
+    /** 攻击力 */
+    private _attack = 1;
+    public get attack(): number {
+        return this._attack;
+    }
+    public set attack(v: number) {
+        this._attack = v;
+    }
+
     /** 经验值 */
     private _exp = 0;
     public get exp(): number {

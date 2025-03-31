@@ -16,13 +16,16 @@ export class ShootSystem extends EcsSystem {
         if (!playerEntiry) return;
 
         this.shootPause -= dt;
-        if (this.shootPause > 0) return;
 
         const player = playerEntiry.get(PlayerComponent);
+        if (player.targetId == 0) return;
+
+        if (this.shootPause > 0) return;
+
         this.shootPause = player.attackInterval;
 
         // 发射射击事件
-        app.controller.game.shoot(player);
+        app.controller.game.shoot(player, player.targetId);
     }
 }
 

@@ -4,7 +4,7 @@ import { PlayerComponent } from '../../app-bundle/app-view/page/game/native/expa
 export class GameController extends BaseController<GameController, {
     // 定义了事件，并同时定义参数列表和返回值
     // Refresh: (a: number) => boolean
-    Shoot: (player: PlayerComponent) => void;
+    Shoot: (player: PlayerComponent, targetUUID: number) => void;
     Enemy: () => void;
     Exp: (node: NodeComponent) => void;
     ExpVal: (val: number) => void;
@@ -19,8 +19,8 @@ export class GameController extends BaseController<GameController, {
     //     this.emit(GameController.Event.Refresh, true); // 参数类型错误
     //     const result = this.call(GameController.Event.Refresh, 1000); // 自动推导返回值类型
     // }
-    shoot(player: PlayerComponent) {
-        this.emit(GameController.Event.Shoot, player);
+    shoot(player: PlayerComponent, targetUUID: number) {
+        this.emit(GameController.Event.Shoot, player, targetUUID);
     }
     enemy() {
         this.emit(GameController.Event.Enemy);

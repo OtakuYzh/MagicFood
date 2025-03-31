@@ -9,10 +9,13 @@ import { EnemyComponent } from '../component/EnemyComponent';
 import { ExpComponent } from '../component/ExpComponent';
 import { PlayerComponent } from '../component/PlayerComponent';
 import { app } from 'db://assets/app/app';
+import { RangeComponent } from '../component/RangeComponent';
+import { Vec2 } from 'cc';
 
 export class CollisionSystem extends EcsSystem {
 
     private physics: SAP<MyEntity>; // SAP碰撞检测
+    private _rangeEnemyUIDs = new Set<number>();
 
     protected onAdd(): void {
         this.physics = new SAP<MyEntity>();
@@ -27,6 +30,7 @@ export class CollisionSystem extends EcsSystem {
     private bulletFilter = filter.all(BulletComponent, CollisionComponent, NodeComponent).exclude(DestroyComponent);
     private enemyFilter = filter.all(EnemyComponent, CollisionComponent, NodeComponent).exclude(DestroyComponent);
     private expFilter = filter.all(ExpComponent, CollisionComponent, NodeComponent).exclude(DestroyComponent);
+    private rangeFilter = filter.all(RangeComponent, CollisionComponent, NodeComponent).exclude(DestroyComponent);
 
     protected matcher: IFilter = filter.all(CollisionComponent, NodeComponent);
     protected onEntityEnter(entity: IEntity): void {
@@ -65,6 +69,11 @@ export class CollisionSystem extends EcsSystem {
             node.entity.get(CollisionComponent).body.setRect(node.boundingBox);
         })
 
+        const rangeNode = this.query(this.rangeFilter, NodeComponent);
+        rangeNode.forEach(node => {
+            node.entity.get(CollisionComponent).body.setRect(node.boundingBox);
+        })
+
         // 单位间碰撞
         this.physics.trigger((a, b) => {
             if (a.data.has(PlayerComponent)) {
@@ -82,10 +91,16 @@ export class CollisionSystem extends EcsSystem {
                     this.bulletAndEnemy(b.data, a.data);
                 } else if (b.data.has(PlayerComponent)) {
                     this.playerAndEnemy(b.data, a.data);
+                } else if (b.data.has(RangeComponent)) {
+                    this.enemyAndRange(a.data, b.data);
                 }
             } else if (a.data.has(ExpComponent)) {
                 if (b.data.has(PlayerComponent)) {
                     this.playerAndExp(b.data, a.data);
+                }
+            } else if (a.data.has(RangeComponent)) {
+                if (b.data.has(EnemyComponent)) {
+                    this.enemyAndRange(b.data, a.data);
                 }
             }
         })
@@ -108,6 +123,33 @@ export class CollisionSystem extends EcsSystem {
         if (!bulletE.has(DestroyComponent)) bulletE.add(DestroyComponent);
         if (!enemyE.has(DestroyComponent)) enemyE.add(DestroyComponent);
         app.controller.game.exp(enemyE.get(NodeComponent));
+        const player = this.find(this.playerFilter, PlayerComponent);
+        if (player) {
+            player.deleteRangeUUID(enemyE.uuid);
+            player.targetId = 0;
+        }
+    }
+
+    private enemyAndRange(enemyE: MyEntity, rangeE: MyEntity) {
+        const player = this.find(this.playerFilter, PlayerComponent);
+        if (player) {
+            player.addRangeUUID(enemyE.uuid);
+            if (player.targetId == 0) {
+                const playerPos = new Vec2(player.entity.get(NodeComponent).position.x, player.entity.get(NodeComponent).position.y);
+                let targetPos = new Vec2();
+                let minRange = 0;
+                for (const targetUUID of player.rangeUUIDs) {
+                    const target = this.ecs.findByUuid(targetUUID);
+                    targetPos.x = target.get(NodeComponent).position.x;
+                    targetPos.y = target.get(NodeComponent).position.y;
+                    const distance = Vec2.distance(playerPos, targetPos);
+                    if (distance < minRange || minRange == 0) {
+                        minRange = distance;
+                        player.targetId = targetUUID;
+                    }
+                }
+            }
+        }
     }
 }
 

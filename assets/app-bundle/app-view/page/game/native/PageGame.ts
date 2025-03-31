@@ -15,19 +15,22 @@ import { EnemySystem } from './expansion/ecs/system/EnemySystem';
 import { EnemyComponent } from './expansion/ecs/component/EnemyComponent';
 import { ExpComponent } from './expansion/ecs/component/ExpComponent';
 import { app } from 'db://assets/app/app';
+import { RangeComponent } from './expansion/ecs/component/RangeComponent';
 
 enum Group {
     Player = 1 << 0,
     Bullet = 1 << 1,
     Enemy = 1 << 2,
     Exp = 1 << 3,
+    Range = 1 << 4,
 }
 
 enum Mask {
     Player = Group.Enemy | Group.Exp,
     Bullet = Group.Enemy,
-    Enemy = Group.Player | Group.Bullet,
+    Enemy = Group.Player | Group.Bullet | Group.Range,
     Exp = Group.Player,
+    Range = Group.Enemy,
 }
 
 const { ccclass, property } = _decorator;
@@ -47,6 +50,9 @@ export class PageGame extends BaseView.BindController(GameController) {
 
     @property(Prefab)
     private exp: Prefab = null;
+
+    @property(Prefab)
+    private range: Prefab = null;
 
     private _isRuning = false;
 
@@ -110,12 +116,12 @@ export class PageGame extends BaseView.BindController(GameController) {
 
         const move = entity.add(MoveComponent);
         move.toward = -90;
-        move.speed = randomRange(100, 300);
+        move.speed = 100;
 
         entity.add(EnemyComponent);
     }
 
-    private onShoot(player: PlayerComponent) {
+    private onShoot(player: PlayerComponent, targetUUID: number) {
         const bullet = instantiate(this.bullet);
         bullet.parent = this.node;
         const playerPos = player.entity.node.getPosition();
@@ -134,13 +140,21 @@ export class PageGame extends BaseView.BindController(GameController) {
         collision.body.setRect(node.boundingBox);
 
         const move = entity.add(MoveComponent);
-        const input = ecs.getSingleton(InputSingleton);
-        const inputPos = new Vec3(input.x, input.y, bullet.z);
+        // const input = ecs.getSingleton(InputSingleton);
+        const targetE = ecs.findByUuid(targetUUID);
+        const targetPos = targetE.get(NodeComponent).position;
+        const inputPos = new Vec3(targetPos.x, targetPos.y, bullet.z);
         inputPos.subtract(bullet.position);
         const angle = Math.atan2(inputPos.y, inputPos.x) * 180 / Math.PI;
         move.toward = angle;
-        // move.toward = 90; // 垂直
         move.speed = 1000;
+        move.options = {
+            rotate: false,
+            minSpeed: -Infinity,
+            maxSpeed: Infinity,
+            acceleratedVelocity: 100,
+            angleVelocity: 0
+        }
 
         entity.add(BulletComponent);
     }
@@ -188,6 +202,7 @@ export class PageGame extends BaseView.BindController(GameController) {
         const entity = ecs.createEntity(MyEntity, { node: player });
 
         const node = entity.add(NodeComponent);
+        node.setAnchorPoints(0.5, 0);
         node.setPosition(player.x, player.y);
         node.setContentSize(player.getComponent(UITransform).width, player.getComponent(UITransform).height);
 
@@ -199,12 +214,27 @@ export class PageGame extends BaseView.BindController(GameController) {
         // 添加玩家组件
         entity.add(PlayerComponent);
 
-        const input = ecs.addSingleton(InputSingleton);
-        input.x = 0;
-        input.y = view.getVisibleSize().height;
+        // const input = ecs.addSingleton(InputSingleton);
+        // input.x = 0;
+        // input.y = view.getVisibleSize().height;
 
-        this.node.on(Node.EventType.TOUCH_START, this.onChangeShootAngle, this);
-        this.node.on(Node.EventType.TOUCH_END, this.onChangeShootAngle, this);
+        const range = instantiate(this.range);
+        range.parent = this.node;
+        range.x = 0;
+        range.y = 0;
+        const rangeE = ecs.createEntity(MyEntity, { node: range });
+        const rangeN = rangeE.add(NodeComponent);
+        rangeN.setAnchorPoints(0.5, 0);
+        rangeN.setPosition(range.x, range.y);
+        rangeN.setContentSize(range.getComponent(UITransform).width, range.getComponent(UITransform).height);
+        const rangeC = rangeE.add(CollisionComponent);
+        rangeC.body.setGroup(Group.Range);
+        rangeC.body.setMask(Mask.Range);
+        rangeC.body.setRect(rangeN.boundingBox);
+        rangeE.add(RangeComponent);
+
+        // this.node.on(Node.EventType.TOUCH_START, this.onChangeShootAngle, this);
+        // this.node.on(Node.EventType.TOUCH_END, this.onChangeShootAngle, this);
     }
 
     private onChangeShootAngle(event: EventTouch) {

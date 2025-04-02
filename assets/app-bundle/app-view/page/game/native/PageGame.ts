@@ -1,7 +1,7 @@
 import { _decorator, EventTouch, instantiate, math, Node, Prefab, randomRange, UITransform, v3, Vec2, Vec3, view } from 'cc';
 import BaseView from '../../../../../../extensions/app/assets/base/BaseView';
 import { IMiniViewNames } from '../../../../../app-builtin/app-admin/executor';
-import { ecs, MoveComponent, MoveSystem, NodeComponent } from 'db://assets/pkg-export/@gamex/cc-ecs';
+import { ecs, filter, MoveComponent, MoveSystem, NodeComponent } from 'db://assets/pkg-export/@gamex/cc-ecs';
 import { MyEntity } from './expansion/ecs/entity/MyEntity';
 import { ShootSystem } from './expansion/ecs/system/ShootSystem';
 import { PlayerComponent } from './expansion/ecs/component/PlayerComponent';
@@ -16,6 +16,9 @@ import { EnemyComponent } from './expansion/ecs/component/EnemyComponent';
 import { ExpComponent } from './expansion/ecs/component/ExpComponent';
 import { app } from 'db://assets/app/app';
 import { RangeComponent } from './expansion/ecs/component/RangeComponent';
+import { QuadTreeSingleton } from './expansion/ecs/singleton/QuadTreeSingleton';
+import { QuadTreeBodyComponent } from './expansion/ecs/component/QuadTreeBodyComponent';
+import { QuadTreeSystem } from './expansion/ecs/system/QuadTreeSystem';
 
 enum Group {
     Player = 1 << 0,
@@ -58,9 +61,12 @@ export class PageGame extends BaseView.BindController(GameController) {
 
     // 初始化的相关逻辑写在这
     onLoad() {
+        ecs.addSingleton(QuadTreeSingleton);
+
         ecs.addSystem(EnemySystem);
         ecs.addSystem(ShootSystem);
-        ecs.addSystem(MoveSystem); //公共的move系统
+        ecs.addSystem(MoveSystem);
+        ecs.addSystem(QuadTreeSystem);
         ecs.addSystem(CollisionSystem);
         ecs.addSystem(DestroySystem);
 
@@ -100,7 +106,7 @@ export class PageGame extends BaseView.BindController(GameController) {
         const enemy = instantiate(this.enemy);
         enemy.parent = this.node;
         //TODO 怪物生成的位置是否需要根据手机屏幕进行统一适配？
-        enemy.x = randomRange(-view.getVisibleSize().width/2, view.getVisibleSize().width/2);
+        enemy.x = randomRange(0, view.getVisibleSize().width);
         enemy.y = view.getVisibleSize().height;
 
         const entity = ecs.createEntity(MyEntity, { node: enemy });
@@ -114,6 +120,11 @@ export class PageGame extends BaseView.BindController(GameController) {
         collision.body.setMask(Mask.Enemy);
         collision.body.setRect(node.boundingBox);
 
+        const quadtreeNode = entity.add(QuadTreeBodyComponent);
+        quadtreeNode.body.setGroup(Group.Enemy);
+        quadtreeNode.body.setMask(Mask.Enemy);
+        quadtreeNode.body.setRect(node.boundingBox);
+
         const move = entity.add(MoveComponent);
         move.toward = -90;
         move.speed = 100;
@@ -121,7 +132,7 @@ export class PageGame extends BaseView.BindController(GameController) {
         entity.add(EnemyComponent);
     }
 
-    private onShoot(player: PlayerComponent, targetUUID: number) {
+    private onShoot(player: PlayerComponent, x?: number, y?: number) {
         const bullet = instantiate(this.bullet);
         bullet.parent = this.node;
         const playerPos = player.entity.node.getPosition();
@@ -140,10 +151,7 @@ export class PageGame extends BaseView.BindController(GameController) {
         collision.body.setRect(node.boundingBox);
 
         const move = entity.add(MoveComponent);
-        // const input = ecs.getSingleton(InputSingleton);
-        const targetE = ecs.findByUuid(targetUUID);
-        const targetPos = targetE.get(NodeComponent).position;
-        const inputPos = new Vec3(targetPos.x, targetPos.y, bullet.z);
+        const inputPos = new Vec3(x, y, bullet.z);
         inputPos.subtract(bullet.position);
         const angle = Math.atan2(inputPos.y, inputPos.x) * 180 / Math.PI;
         move.toward = angle;
@@ -177,7 +185,8 @@ export class PageGame extends BaseView.BindController(GameController) {
         collision.body.setRect(node.boundingBox);
 
         const move = entity.add(MoveComponent);
-        move.toward = Math.atan2(-exp.y, -exp.x) * 180 / Math.PI;
+        const playerPos = ecs.find(filter.all(PlayerComponent, NodeComponent)).get(NodeComponent).position;
+        move.toward = Math.atan2(playerPos.y - exp.y, playerPos.x - exp.x) * 180 / Math.PI;
         move.speed = 1000;
 
         entity.add(ExpComponent);
@@ -190,10 +199,11 @@ export class PageGame extends BaseView.BindController(GameController) {
     }
 
     private initPlayer() {
+        const winSize = view.getVisibleSize();
         // 实例化预制体
         const player = instantiate(this.player);
         player.parent = this.node;
-        player.x = 0;
+        player.x = winSize.width / 2;
         player.y = 0;
         // TODO 缺少位置信息相关的组件
         // player.setPosition(math.v3(0, -200, 0)); //TODO
@@ -202,7 +212,6 @@ export class PageGame extends BaseView.BindController(GameController) {
         const entity = ecs.createEntity(MyEntity, { node: player });
 
         const node = entity.add(NodeComponent);
-        node.setAnchorPoints(0.5, 0);
         node.setPosition(player.x, player.y);
         node.setContentSize(player.getComponent(UITransform).width, player.getComponent(UITransform).height);
 
@@ -213,10 +222,6 @@ export class PageGame extends BaseView.BindController(GameController) {
 
         // 添加玩家组件
         entity.add(PlayerComponent);
-
-        // const input = ecs.addSingleton(InputSingleton);
-        // input.x = 0;
-        // input.y = view.getVisibleSize().height;
 
         const range = instantiate(this.range);
         range.parent = this.node;
@@ -231,17 +236,10 @@ export class PageGame extends BaseView.BindController(GameController) {
         rangeC.body.setGroup(Group.Range);
         rangeC.body.setMask(Mask.Range);
         rangeC.body.setRect(rangeN.boundingBox);
+        const rangQ = rangeE.add(QuadTreeBodyComponent);
+        rangQ.body.setGroup(Group.Range);
+        rangQ.body.setMask(Mask.Range);
+        rangQ.body.setRect(rangeN.boundingBox);
         rangeE.add(RangeComponent);
-
-        // this.node.on(Node.EventType.TOUCH_START, this.onChangeShootAngle, this);
-        // this.node.on(Node.EventType.TOUCH_END, this.onChangeShootAngle, this);
-    }
-
-    private onChangeShootAngle(event: EventTouch) {
-        const input = ecs.getSingleton(InputSingleton);
-        const pos = event.getUILocation();
-        const { x, y } = this.node.getComponent(UITransform).convertToNodeSpaceAR(v3(pos.x, pos.y, 1));
-        input.x = x;
-        input.y = y;
     }
 }

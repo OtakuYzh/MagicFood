@@ -47,27 +47,6 @@ export class PlayerComponent extends EcsComponent<MyEntity> {
         this._exp = v;
     }
 
-    /** 范围内敌人的uuid */
-    private _rangeUUIDs = new Set<number>();
-    public get rangeUUIDs() {
-        return this._rangeUUIDs;
-    }
-    addRangeUUID(v: number) {
-        this._rangeUUIDs.add(v);
-    }
-    deleteRangeUUID(v: number) {
-        this._rangeUUIDs.delete(v);
-    }
-
-    /** 目标id */
-    private _targetId = 0;
-    public get targetId(): number {
-        return this._targetId;
-    }
-    public set targetId(v: number) {
-        this._targetId = v;
-    }
-
     /** 攻击范围 */
     private _arng = 400;
     public get arng(): number {

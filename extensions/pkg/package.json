@@ -22,6 +22,7 @@
 	"dependencies": {
 		"@gamex/cc-ecs": "^2.2.1",
 		"@gamex/cc-expand": "^1.1.1",
+		"@gamex/cc-quadtree": "^2.0.2",
 		"@gamex/cc-sap": "^2.0.6"
 	}
 }

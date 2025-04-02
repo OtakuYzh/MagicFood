@@ -1,9 +1,9 @@
 import { ecsclass, EcsComponent } from 'db://assets/pkg-export/@gamex/cc-ecs';
+import { Body } from 'db://assets/pkg-export/@gamex/cc-quadtree';
 import { MyEntity } from '../entity/MyEntity';
-import { Body } from 'db://assets/pkg-export/@gamex/cc-sap';
 
-@ecsclass('CollisionComponent')
-export class CollisionComponent extends EcsComponent<MyEntity> {
+@ecsclass('QuadTreeBodyComponent')
+export class QuadTreeBodyComponent extends EcsComponent<MyEntity> {
     static allowRecycling: boolean = true;
 
     public body = new Body<MyEntity>(0);
@@ -17,6 +17,7 @@ export class CollisionComponent extends EcsComponent<MyEntity> {
         this.body.setID(0);
         this.body.setData(null);
     }
+
 }
 
 

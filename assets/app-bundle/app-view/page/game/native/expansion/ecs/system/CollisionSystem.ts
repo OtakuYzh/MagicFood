@@ -1,4 +1,3 @@
-import { SAP } from 'db://pkg/@gamex/cc-sap';
 import { MyEntity } from '../entity/MyEntity';
 import { EcsSystem, filter, IEntity, IFilter, NodeComponent } from 'db://assets/pkg-export/@gamex/cc-ecs';
 import { BulletComponent } from '../component/BulletComponent';
@@ -11,19 +10,19 @@ import { PlayerComponent } from '../component/PlayerComponent';
 import { app } from 'db://assets/app/app';
 import { RangeComponent } from '../component/RangeComponent';
 import { Vec2 } from 'cc';
+import { SAP } from 'db://assets/pkg-export/@gamex/cc-sap';
 
 export class CollisionSystem extends EcsSystem {
 
-    private physics: SAP<MyEntity>; // SAP碰撞检测
-    private _rangeEnemyUIDs = new Set<number>();
+    private _physics: SAP<MyEntity>; // SAP碰撞检测
 
     protected onAdd(): void {
-        this.physics = new SAP<MyEntity>();
+        this._physics = new SAP<MyEntity>();
     }
 
     protected onRemove(): void {
-        this.physics.clear();
-        this.physics = null;
+        this._physics.clear();
+        this._physics = null;
     }
 
     private playerFilter = filter.all(PlayerComponent, CollisionComponent, NodeComponent).exclude(DestroyComponent);
@@ -34,10 +33,10 @@ export class CollisionSystem extends EcsSystem {
 
     protected matcher: IFilter = filter.all(CollisionComponent, NodeComponent);
     protected onEntityEnter(entity: IEntity): void {
-        this.physics.insert(entity.get(CollisionComponent).body);
+        this._physics.insert(entity.get(CollisionComponent).body);
     }
     protected onEntityLeave(entity: IEntity): void {
-        this.physics.remove(entity.get(CollisionComponent).body);
+        this._physics.remove(entity.get(CollisionComponent).body);
     }
 
     protected execute(dt?: number, ...args: any[]): void {
@@ -75,7 +74,7 @@ export class CollisionSystem extends EcsSystem {
         })
 
         // 单位间碰撞
-        this.physics.trigger((a, b) => {
+        this._physics.trigger((a, b) => {
             if (a.data.has(PlayerComponent)) {
                 if (b.data.has(EnemyComponent)) {
                     this.playerAndEnemy(a.data, b.data);
@@ -91,16 +90,10 @@ export class CollisionSystem extends EcsSystem {
                     this.bulletAndEnemy(b.data, a.data);
                 } else if (b.data.has(PlayerComponent)) {
                     this.playerAndEnemy(b.data, a.data);
-                } else if (b.data.has(RangeComponent)) {
-                    this.enemyAndRange(a.data, b.data);
                 }
             } else if (a.data.has(ExpComponent)) {
                 if (b.data.has(PlayerComponent)) {
                     this.playerAndExp(b.data, a.data);
-                }
-            } else if (a.data.has(RangeComponent)) {
-                if (b.data.has(EnemyComponent)) {
-                    this.enemyAndRange(b.data, a.data);
                 }
             }
         })
@@ -124,32 +117,6 @@ export class CollisionSystem extends EcsSystem {
         if (!enemyE.has(DestroyComponent)) enemyE.add(DestroyComponent);
         app.controller.game.exp(enemyE.get(NodeComponent));
         const player = this.find(this.playerFilter, PlayerComponent);
-        if (player) {
-            player.deleteRangeUUID(enemyE.uuid);
-            player.targetId = 0;
-        }
-    }
-
-    private enemyAndRange(enemyE: MyEntity, rangeE: MyEntity) {
-        const player = this.find(this.playerFilter, PlayerComponent);
-        if (player) {
-            player.addRangeUUID(enemyE.uuid);
-            if (player.targetId == 0) {
-                const playerPos = new Vec2(player.entity.get(NodeComponent).position.x, player.entity.get(NodeComponent).position.y);
-                let targetPos = new Vec2();
-                let minRange = 0;
-                for (const targetUUID of player.rangeUUIDs) {
-                    const target = this.ecs.findByUuid(targetUUID);
-                    targetPos.x = target.get(NodeComponent).position.x;
-                    targetPos.y = target.get(NodeComponent).position.y;
-                    const distance = Vec2.distance(playerPos, targetPos);
-                    if (distance < minRange || minRange == 0) {
-                        minRange = distance;
-                        player.targetId = targetUUID;
-                    }
-                }
-            }
-        }
     }
 }
 

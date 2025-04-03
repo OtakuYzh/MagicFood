@@ -1,4 +1,4 @@
-import { EcsSystem, filter, IEntity, NodeComponent } from 'db://assets/pkg-export/@gamex/cc-ecs';
+import { EcsSystem, filter, IEntity, IFilter, NodeComponent } from 'db://assets/pkg-export/@gamex/cc-ecs';
 import { QuadTreeSingleton } from '../singleton/QuadTreeSingleton';
 import { QuadTreeBodyComponent } from '../component/QuadTreeBodyComponent';
 import { DestroyComponent } from '../component/DestroyComponent';
@@ -15,6 +15,7 @@ export class QuadTreeSystem extends EcsSystem {
         this.ecs.getSingleton(QuadTreeSingleton).clear();
     }
 
+    protected matcher: IFilter = filter.all(QuadTreeBodyComponent, NodeComponent);
     protected onEntityEnter(entity: IEntity): void {
         this.ecs.getSingleton(QuadTreeSingleton).insert(entity);
     }

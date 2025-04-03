@@ -9,7 +9,6 @@ import { ExpComponent } from '../component/ExpComponent';
 import { PlayerComponent } from '../component/PlayerComponent';
 import { app } from 'db://assets/app/app';
 import { RangeComponent } from '../component/RangeComponent';
-import { Vec2 } from 'cc';
 import { SAP } from 'db://assets/pkg-export/@gamex/cc-sap';
 
 export class CollisionSystem extends EcsSystem {

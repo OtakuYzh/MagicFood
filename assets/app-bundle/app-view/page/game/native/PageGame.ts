@@ -10,7 +10,6 @@ import { BulletComponent } from './expansion/ecs/component/BulletComponent';
 import { CollisionSystem } from './expansion/ecs/system/CollisionSystem';
 import { DestroySystem } from './expansion/ecs/system/DestroySystem';
 import { CollisionComponent } from './expansion/ecs/component/CollisionComponent';
-import { InputSingleton } from './expansion/ecs/singleton/InputSingleton';
 import { EnemySystem } from './expansion/ecs/system/EnemySystem';
 import { EnemyComponent } from './expansion/ecs/component/EnemyComponent';
 import { ExpComponent } from './expansion/ecs/component/ExpComponent';
@@ -225,7 +224,7 @@ export class PageGame extends BaseView.BindController(GameController) {
 
         const range = instantiate(this.range);
         range.parent = this.node;
-        range.x = 0;
+        range.x = winSize.width / 2;
         range.y = 0;
         const rangeE = ecs.createEntity(MyEntity, { node: range });
         const rangeN = rangeE.add(NodeComponent);

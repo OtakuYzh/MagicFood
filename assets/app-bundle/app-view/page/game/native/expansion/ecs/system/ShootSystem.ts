@@ -29,8 +29,8 @@ export class ShootSystem extends EcsSystem {
         let targetX = 0;
         let targetY = 0;
         const quadTreeSingleton = this.ecs.getSingleton(QuadTreeSingleton);
-        const rangeNode = this.find(this.rangeFilter);
-        const bodyList = quadTreeSingleton.retrieveById(rangeNode.get(QuadTreeBodyComponent).body.id);
+        const rangeEntity = this.find(this.rangeFilter);
+        const bodyList = quadTreeSingleton.retrieveById(rangeEntity.get(QuadTreeBodyComponent).body.id);
         let minDistance = 0;
         const playerPosX = playerEntiry.get(NodeComponent).x;
         const playerPosY = playerEntiry.get(NodeComponent).y;

@@ -1,6 +1,7 @@
 import { NodeComponent } from 'db://pkg/@gamex/cc-ecs';
 import BaseController from '../../../extensions/app/assets/base/BaseController';
 import { PlayerComponent } from '../../app-bundle/app-view/page/game/native/expansion/ecs/component/PlayerComponent';
+import { Node } from 'cc';
 export class GameController extends BaseController<GameController, {
     // 定义了事件，并同时定义参数列表和返回值
     // Refresh: (a: number) => boolean
@@ -9,6 +10,9 @@ export class GameController extends BaseController<GameController, {
     Exp: (node: NodeComponent) => void;
     ExpVal: (val: number) => void;
     LevelUp: () => void;
+    CollectEnemy: (node: Node) => void;
+    CollectBullet: (node: Node) => void;
+    CollectExp: (node: Node) => void;
 }>() {
     // Controller中发射事件, UI中监听事件:
     // 1、UI中需要将 「extends BaseView」 改为=> 「extends BaseView.bindController(GameController)」
@@ -34,4 +38,16 @@ export class GameController extends BaseController<GameController, {
     levelUp() {
         this.emit(GameController.Event.LevelUp);
     }
+    collectEnemy(node: Node) {
+        this.emit(GameController.Event.CollectEnemy, node);
+    }
+
+    collectBullet(node: Node) {
+        this.emit(GameController.Event.CollectBullet, node);
+    }
+
+    collectExp(node: Node) {
+        this.emit(GameController.Event.CollectExp, node);
+    }
+
 }

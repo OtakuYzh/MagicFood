@@ -58,6 +58,10 @@ export class PageGame extends BaseView.BindController(GameController) {
 
     private _isRuning = false;
 
+    private bulletCache: Node[] = [];
+    private enemyCache: Node[] = [];
+    private expCache: Node[] = [];
+
     // 初始化的相关逻辑写在这
     onLoad() {
         ecs.addSingleton(QuadTreeSingleton);
@@ -74,6 +78,11 @@ export class PageGame extends BaseView.BindController(GameController) {
         this.controller.on(GameController.Event.Exp, this.onExp, this);
         this.controller.on(GameController.Event.LevelUp, this.onLevelUp, this);
 
+        this.controller.on(GameController.Event.CollectEnemy, this.onCollectEnemy, this);
+        this.controller.on(GameController.Event.CollectBullet, this.onCollectBullet, this);
+        this.controller.on(GameController.Event.CollectExp, this.onCollectExp, this);
+
+        this.initCache();
         this.initPlayer();
     }
 
@@ -102,8 +111,8 @@ export class PageGame extends BaseView.BindController(GameController) {
     }
 
     private onEnemy() {
-        const enemy = instantiate(this.enemy);
-        enemy.parent = this.node;
+        const enemy = this.enemyCache.pop() || instantiate(this.enemy);
+        if (!enemy.parent) enemy.parent = this.node;
         //TODO 怪物生成的位置是否需要根据手机屏幕进行统一适配？
         enemy.x = randomRange(0, view.getVisibleSize().width);
         enemy.y = view.getVisibleSize().height;
@@ -132,8 +141,8 @@ export class PageGame extends BaseView.BindController(GameController) {
     }
 
     private onShoot(player: PlayerComponent, x?: number, y?: number) {
-        const bullet = instantiate(this.bullet);
-        bullet.parent = this.node;
+        const bullet = this.bulletCache.pop() || instantiate(this.bullet);
+        if (!bullet.parent) bullet.parent = this.node;
         const playerPos = player.entity.node.getPosition();
         bullet.x = playerPos.x;
         bullet.y = playerPos.y;
@@ -167,8 +176,8 @@ export class PageGame extends BaseView.BindController(GameController) {
     }
 
     private onExp(enemyN: NodeComponent) {
-        const exp = instantiate(this.exp);
-        exp.parent = this.node;
+        const exp = this.expCache.pop() || instantiate(this.exp);
+        if (!exp.parent) exp.parent = this.node;
         exp.x = enemyN.x;
         exp.y = enemyN.y;
 
@@ -240,5 +249,35 @@ export class PageGame extends BaseView.BindController(GameController) {
         rangQ.body.setMask(Mask.Range);
         rangQ.body.setRect(rangeN.boundingBox);
         rangeE.add(RangeComponent);
+    }
+
+    private initCache() {
+        for (let i = 0; i < 20; i++) {
+            const node = instantiate(this.enemy);
+            this.onCollectEnemy(node);
+        }
+        for (let i = 0; i < 10; i++) {
+            const node = instantiate(this.bullet);
+            this.onCollectBullet(node);
+        }
+        for (let i = 0; i < 20; i++) {
+            const node = instantiate(this.exp);
+            this.onCollectExp(node);
+        }
+    }
+
+    private onCollectEnemy(node: Node) {
+        node.setPosition(1000, 0, 0);
+        this.enemyCache.push(node);
+    }
+
+    private onCollectBullet(node: Node) {
+        node.setPosition(1000, 0, 0);
+        this.bulletCache.push(node);
+    }
+
+    private onCollectExp(node: Node) {
+        node.setPosition(1000, 0, 0);
+        this.expCache.push(node);
     }
 }
